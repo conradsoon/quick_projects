@@ -44,3 +44,7 @@ build/
 *.DS_Store  # macOS desktop service store file
 
 
+#Ignore files without file extensions
+*
+!*.*
+
