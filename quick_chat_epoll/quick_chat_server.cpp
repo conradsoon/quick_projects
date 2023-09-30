@@ -40,6 +40,8 @@ public:
 			removeConnection(client);
 		}
 	};
+	QuickChatServer(const QuickChatServer &) = delete;
+	QuickChatServer &operator=(const QuickChatServer &) = delete;
 
 	void poll()
 	{
