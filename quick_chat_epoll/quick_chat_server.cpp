@@ -40,6 +40,8 @@ public:
 			removeConnection(client);
 		}
 	};
+
+	// delete constructors
 	QuickChatServer(const QuickChatServer &) = delete;
 	QuickChatServer &operator=(const QuickChatServer &) = delete;
 
