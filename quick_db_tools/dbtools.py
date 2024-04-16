@@ -94,6 +94,23 @@ class Relation:
         for node in self.nodes.values():
             node.activated = False
 
+    def _is_key(self, attributes):
+        closure = self.find_closure(attributes)
+        return closure == self.attributes
+
+    def minimal_keys(self):
+        keys = []
+        for i in range(1, len(self.attributes) + 1):
+            for combination in combinations(self.attributes, i):
+                if self._is_key(combination):
+                    keys.append(combination)
+        # remove all keys that are supersets of other keys
+        minimal_keys = []
+        for key in keys:
+            if not any(set(key) < set(other_key) for other_key in keys if key != other_key):
+                minimal_keys.append(key)
+        return keys
+
     def find_closure(self, attributes):
         self._reset_activations()
         for attr in attributes:
@@ -119,3 +136,8 @@ for i in range(1, len(attributes) + 1):
     for combination in combinations(attributes, i):
         closure_result = relation.find_closure(combination)
         print(f"Closure of {combination}: {closure_result}")
+
+# print the minimal keys
+print("Minimal keys:")
+for key in relation.minimal_keys():
+    print(key)
