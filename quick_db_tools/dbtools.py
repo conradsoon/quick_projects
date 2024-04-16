@@ -79,6 +79,11 @@ class Relation:
         for dep in self.dependencies:
             lhs_node = self.get_or_create_node(dep.lhs)
             rhs_nodes = [self.get_or_create_node({attr}) for attr in dep.rhs]
+            if isinstance(lhs_node, CombinationNode):
+                for attr in dep.lhs:
+                    self.get_or_create_node({attr}).add_output(lhs_node)
+                    lhs_node.add_input(self.get_or_create_node({attr}))
+
             for rhs_node in rhs_nodes:
                 lhs_node.add_output(rhs_node)
                 rhs_node.add_input(lhs_node)
@@ -107,9 +112,15 @@ class Relation:
         # remove all keys that are supersets of other keys
         minimal_keys = []
         for key in keys:
-            if not any(set(key) < set(other_key) for other_key in keys if key != other_key):
+            if not any(set(other_key) <= set(key) for other_key in keys if key != other_key):
                 minimal_keys.append(key)
-        return keys
+        return minimal_keys
+
+    def prime_attributes(self):
+        prime_attributes = set()
+        for key in self.minimal_keys():
+            prime_attributes.update(key)
+        return prime_attributes
 
     def find_closure(self, attributes):
         self._reset_activations()
@@ -123,13 +134,14 @@ class Relation:
         return closure
 
 
-attributes = {'A', 'B', 'C', 'D', 'E'}
+attributes = {'A', 'B', 'C', 'D', 'E', 'F'}
 dependencies = [
-    FunctionalDependency({'A'}, {'B', 'C'}),
-    FunctionalDependency({'C'}, {'D'}),
-    FunctionalDependency({'B', 'C'}, {'E'})
+    FunctionalDependency({'F'}, {'D', 'E'}),
+    FunctionalDependency({'C', 'E'}, {'D', 'F'}),
+    FunctionalDependency({'C', 'E', 'F'}, {'D'}),
+    FunctionalDependency({'D', 'E'}, {'A', 'F'}),
+    FunctionalDependency({'A', 'B', 'D'}, {'C', 'F'})
 ]
-
 relation = Relation(attributes, dependencies)
 # find all combinations of attributes, and generate closures
 for i in range(1, len(attributes) + 1):
@@ -139,5 +151,9 @@ for i in range(1, len(attributes) + 1):
 
 # print the minimal keys
 print("Minimal keys:")
-for key in relation.minimal_keys():
+# print as sorted list of sorted tuples
+sorted_keys = sorted(map(tuple, map(sorted, relation.minimal_keys())))
+for key in sorted_keys:
     print(key)
+
+print("Prime attributes:", relation.prime_attributes())
