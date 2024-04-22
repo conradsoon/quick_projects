@@ -144,13 +144,38 @@ class Relation:
                 "The subset of attributes is not a valid subset of the relation's attributes.")
 
         projected_dependencies = []
-        for dep in self.dependencies:
-            # only consider if lhs is a subset of the projected attributes
-            if dep.lhs.issubset(projected_attributes):
-                # append the subset of rhs
-                projected_dependencies.append(
-                    FunctionalDependency(dep.lhs, dep.rhs.intersection(projected_attributes)))
+        for i in range(1, len(projected_attributes) + 1):
+            for combination in combinations(projected_attributes, i):
+                closure = self.find_closure(combination)
+                for attr in closure - set(combination):
+                    projected_dependencies.append(
+                        FunctionalDependency(set(combination), {attr}))
         return projected_attributes, projected_dependencies
+
+    # def project(self, attributes):
+    #     projected_attributes = set(attributes)
+    #     if not projected_attributes.issubset(self.attributes):
+    #         raise ValueError(
+    #             "The subset of attributes is not a valid subset of the relation's attributes.")
+
+    #     projected_dependencies = []
+    #     for dep in self.dependencies:
+    #         # Only consider if LHS is a subset of the projected attributes
+    #         if dep.lhs.issubset(projected_attributes):
+    #             # Append the subset of RHS that are also in the projected attributes
+    #             intersection_rhs = dep.rhs.intersection(projected_attributes)
+    #             if intersection_rhs:  # Only add if the intersection is not empty
+    #                 projected_dependencies.append(
+    #                     FunctionalDependency(dep.lhs, intersection_rhs))
+    #     return projected_attributes, projected_dependencies
+
+
+def combine_dependencies(dependencies):
+    from collections import defaultdict
+    combined = defaultdict(set)
+    for dep in dependencies:
+        combined[frozenset(dep.lhs)].update(dep.rhs)
+    return [FunctionalDependency(lhs, rhs) for lhs, rhs in combined.items()]
 
 
 def is_dependency_implied(relation, dependency):
@@ -171,9 +196,8 @@ def is_dependency_preserving(relation, decomposed_subsets):
                 (frozenset(dep.lhs), frozenset(dep.rhs)))
 
     # Reconstruct the combined relation with the union of all dependencies
-    combined_attributes = set.union(*map(set, decomposed_subsets))
-    reconstructed_deps = [FunctionalDependency(
-        dep[0], dep[1]) for dep in decomposed_dependencies]
+    combined_attributes = set().union(*decomposed_subsets)
+    reconstructed_deps = combine_dependencies(decomposed_dependencies)
     reconstructed_relation = Relation(combined_attributes, reconstructed_deps)
 
     # Check if the closure of the original relation is preserved in the reconstructed relation
@@ -337,7 +361,9 @@ for p in decompositions[2]:
     attr, deps = relation.project(p)
     _relation = Relation(attr, deps)
     print("Projection:", p)
-    print(deps)
-    # print implies 3nf and bcnf
+    # print("Functional Dependencies:")
+    # for dep in deps:
+    #     print(dep)
     print("Is 3NF:", is_3nf(_relation))
     print("Is BCNF:", is_bcnf(_relation))
+    print()
